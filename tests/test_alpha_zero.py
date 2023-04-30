@@ -20,9 +20,9 @@ class TestAlphaZero(unittest.TestCase):
         ray.shutdown()
 
     def test_alpha_zero_compilation(self):
-        """Test whether AlphaZero can be built with all frameworks."""
+        """Test whether XqAlphaZero can be built with all frameworks."""
         config = (
-            az.AlphaZeroConfig()
+            az.XqAlphaZeroConfig()
             .environment(env=CartPoleSparseRewards)
             .training(model={"custom_model": DenseModel})
         )

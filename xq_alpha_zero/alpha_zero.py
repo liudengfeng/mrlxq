@@ -1,16 +1,11 @@
 import logging
 from typing import List, Optional, Type, Union
 
-from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.algorithms.algorithm_config import AlgorithmConfig, NotProvided
-from ray.rllib.execution.rollout_ops import (
-    synchronous_parallel_sample,
-)
-from ray.rllib.execution.train_ops import (
-    multi_gpu_train_one_step,
-    train_one_step,
-)
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
+from ray.rllib.execution.rollout_ops import synchronous_parallel_sample
+from ray.rllib.execution.train_ops import multi_gpu_train_one_step, train_one_step
 from ray.rllib.models.catalog import ModelCatalog
 from ray.rllib.models.modelv2 import restore_original_dimensions
 from ray.rllib.models.torch.torch_action_dist import TorchCategorical
@@ -22,15 +17,15 @@ from ray.rllib.utils.framework import try_import_torch
 from ray.rllib.utils.metrics import (
     NUM_AGENT_STEPS_SAMPLED,
     NUM_ENV_STEPS_SAMPLED,
-    SYNCH_WORKER_WEIGHTS_TIMER,
     SAMPLE_TIMER,
+    SYNCH_WORKER_WEIGHTS_TIMER,
 )
 from ray.rllib.utils.replay_buffers.utils import validate_buffer_config
 from ray.rllib.utils.typing import ResultDict
 
-from ray.rllib.algorithms.alpha_zero.alpha_zero_policy import AlphaZeroPolicy
-from ray.rllib.algorithms.alpha_zero.mcts import MCTS
-from ray.rllib.algorithms.alpha_zero.ranked_rewards import get_r2_env_wrapper
+from .alpha_zero_policy import XqAlphaZeroPolicy
+from .mcts import MCTS
+from .ranked_rewards import get_r2_env_wrapper
 
 torch, nn = try_import_torch()
 
@@ -38,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class AlphaZeroDefaultCallbacks(DefaultCallbacks):
-    """AlphaZero callbacks.
+    """XqAlphaZero callbacks.
 
     If you use custom callbacks, you must extend this class and call super()
     for on_episode_start.
@@ -51,25 +46,25 @@ class AlphaZeroDefaultCallbacks(DefaultCallbacks):
         episode.user_data["initial_state"] = state
 
 
-class AlphaZeroConfig(AlgorithmConfig):
-    """Defines a configuration class from which an AlphaZero Algorithm can be built.
+class XqAlphaZeroConfig(AlgorithmConfig):
+    """Defines a configuration class from which an XqAlphaZero Algorithm can be built.
 
     Example:
-        >>> from ray.rllib.algorithms.alpha_zero import AlphaZeroConfig
-        >>> config = AlphaZeroConfig()   # doctest: +SKIP
+        >>> from xq_alpha_zero import XqAlphaZeroConfig
+        >>> config = XqAlphaZeroConfig()   # doctest: +SKIP
         >>> config = config.training(sgd_minibatch_size=256)   # doctest: +SKIP
-        >>> config = config..resources(num_gpus=0)   # doctest: +SKIP
-        >>> config = config..rollouts(num_rollout_workers=4)   # doctest: +SKIP
+        >>> config = config.resources(num_gpus=0)   # doctest: +SKIP
+        >>> config = config.rollouts(num_rollout_workers=4)   # doctest: +SKIP
         >>> print(config.to_dict()) # doctest: +SKIP
         >>> # Build a Algorithm object from the config and run 1 training iteration.
         >>> algo = config.build(env="CartPole-v1")  # doctest: +SKIP
         >>> algo.train() # doctest: +SKIP
 
     Example:
-        >>> from ray.rllib.algorithms.alpha_zero import AlphaZeroConfig
+        >>> from ray.rllib.algorithms.alpha_zero import XqAlphaZeroConfig
         >>> from ray import air
         >>> from ray import tune
-        >>> config = AlphaZeroConfig()
+        >>> config = XqAlphaZeroConfig()
         >>> # Print out some default values.
         >>> print(config.shuffle_sequences) # doctest: +SKIP
         >>> # Update the config object.
@@ -79,7 +74,7 @@ class AlphaZeroConfig(AlgorithmConfig):
         >>> # Use to_dict() to get the old-style python config dict
         >>> # when running with tune.
         >>> tune.Tuner( # doctest: +SKIP
-        ...     "AlphaZero",
+        ...     "XqAlphaZero",
         ...     run_config=air.RunConfig(stop={"episode_reward_mean": 200}),
         ...     param_space=config.to_dict(),
         ... ).fit()
@@ -87,11 +82,11 @@ class AlphaZeroConfig(AlgorithmConfig):
 
     def __init__(self, algo_class=None):
         """Initializes a PPOConfig instance."""
-        super().__init__(algo_class=algo_class or AlphaZero)
+        super().__init__(algo_class=algo_class or XqAlphaZero)
 
         # fmt: off
         # __sphinx_doc_begin__
-        # AlphaZero specific config settings:
+        # XqAlphaZero specific config settings:
         self.sgd_minibatch_size = 128
         self.shuffle_sequences = True
         self.num_sgd_iter = 30
@@ -128,7 +123,7 @@ class AlphaZeroConfig(AlgorithmConfig):
             "num_init_rewards": 100,
         }
 
-        # Override some of AlgorithmConfig's default values with AlphaZero-specific
+        # Override some of AlgorithmConfig's default values with XqAlphaZero-specific
         # values.
         self.framework_str = "torch"
         self.callbacks_class = AlphaZeroDefaultCallbacks
@@ -163,7 +158,7 @@ class AlphaZeroConfig(AlgorithmConfig):
         ranked_rewards: Optional[dict] = NotProvided,
         num_steps_sampled_before_learning_starts: Optional[int] = NotProvided,
         **kwargs,
-    ) -> "AlphaZeroConfig":
+    ) -> "XqAlphaZeroConfig":
         """Sets the training related configuration.
 
         Args:
@@ -249,7 +244,7 @@ class AlphaZeroConfig(AlgorithmConfig):
         return self
 
     @override(AlgorithmConfig)
-    def update_from_dict(self, config_dict) -> "AlphaZeroConfig":
+    def update_from_dict(self, config_dict) -> "XqAlphaZeroConfig":
         config_dict = config_dict.copy()
 
         if "ranked_rewards" in config_dict:
@@ -287,7 +282,7 @@ def alpha_zero_loss(policy, model, dist_class, train_batch):
     return total_loss, policy_loss, value_loss
 
 
-class AlphaZeroPolicyWrapperClass(AlphaZeroPolicy):
+class AlphaZeroPolicyWrapperClass(XqAlphaZeroPolicy):
     def __init__(self, obs_space, action_space, config):
         model = ModelCatalog.get_model_v2(
             obs_space, action_space, action_space.n, config["model"], "torch"
@@ -323,11 +318,11 @@ class AlphaZeroPolicyWrapperClass(AlphaZeroPolicy):
         )
 
 
-class AlphaZero(Algorithm):
+class XqAlphaZero(Algorithm):
     @classmethod
     @override(Algorithm)
     def get_default_config(cls) -> AlgorithmConfig:
-        return AlphaZeroConfig()
+        return XqAlphaZeroConfig()
 
     @classmethod
     @override(Algorithm)
@@ -402,14 +397,14 @@ class AlphaZero(Algorithm):
         return train_results
 
 
-# Deprecated: Use ray.rllib.algorithms.alpha_zero.AlphaZeroConfig instead!
+# Deprecated: Use ray.rllib.algorithms.alpha_zero.XqAlphaZeroConfig instead!
 class _deprecated_default_config(dict):
     def __init__(self):
-        super().__init__(AlphaZeroConfig().to_dict())
+        super().__init__(XqAlphaZeroConfig().to_dict())
 
     @Deprecated(
         old="ray.rllib.algorithms.alpha_zero.alpha_zero.DEFAULT_CONFIG",
-        new="ray.rllib.algorithms.alpha_zero.alpha_zero.AlphaZeroConfig(...)",
+        new="ray.rllib.algorithms.alpha_zero.alpha_zero.XqAlphaZeroConfig(...)",
         error=True,
     )
     def __getitem__(self, item):

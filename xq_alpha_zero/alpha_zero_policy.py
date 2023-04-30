@@ -1,16 +1,16 @@
 import numpy as np
-
-from ray.rllib.algorithms.alpha_zero.mcts import Node, RootParentNode
 from ray.rllib.policy.policy import Policy
 from ray.rllib.policy.torch_policy import TorchPolicy
 from ray.rllib.utils.annotations import override
 from ray.rllib.utils.framework import try_import_torch
 from ray.rllib.utils.metrics.learner_info import LEARNER_STATS_KEY
 
+from .mcts import Node, RootParentNode
+
 torch, _ = try_import_torch()
 
 
-class AlphaZeroPolicy(TorchPolicy):
+class XqAlphaZeroPolicy(TorchPolicy):
     def __init__(
         self,
         observation_space,
@@ -50,7 +50,6 @@ class AlphaZeroPolicy(TorchPolicy):
         episodes=None,
         **kwargs
     ):
-
         input_dict = {"obs": obs_batch}
         if prev_action_batch is not None:
             input_dict["prev_actions"] = prev_action_batch
