@@ -149,22 +149,6 @@ class XQEnvBase(gym.Env):
         self._fix_action_mask(obs)
         return obs, info
 
-    # def step(self, action):
-    #     assert action in [0, 1], action
-    #     if action == 0 and self.cur_pos > 0:
-    #         self.cur_pos -= 1
-    #     elif action == 1:
-    #         self.cur_pos += 1
-    #     done = truncated = self.cur_pos >= self.end_pos
-    #     # Produce a random reward when we reach the goal.
-    #     return (
-    #         [self.cur_pos],
-    #         random.random() * 2 if done else -0.1,
-    #         done,
-    #         truncated,
-    #         {},
-    #     )
-
     def step(self, action):
         raise NotImplementedError()
 
@@ -515,7 +499,7 @@ class XiangQiV0(XQEnvBase):
         if self.render_mode in ["human", "rgb_array"]:
             self._render_gui(self.render_mode)
 
-        obs = self._get_obs()
+        observations = self._get_obs()
         info = self.satistics_info
         info.update(
             legal_actions=self.game.legal_actions_history[-1],
@@ -527,6 +511,9 @@ class XiangQiV0(XQEnvBase):
             truncated=truncated,
             fen=self.game.board.get_fen(),
         )
+        obs = {"observations": observations, "action_mask": None}
+        # 修复观察
+        self._fix_action_mask(obs)
         return obs, reward, terminated, truncated, info
 
 
@@ -566,7 +553,7 @@ class XiangQiV1(XQEnvBase):
 
     def step(self, action):
         truncated = False
-        obs, reward, terminated = self.game.step(action)
+        observations, reward, terminated = self.game.step(action)
 
         self.satistics_info["l"] += 1
         if (
@@ -597,4 +584,7 @@ class XiangQiV1(XQEnvBase):
             truncated=truncated,
             fen=self.game.board.get_fen(),
         )
+        obs = {"observations": observations, "action_mask": None}
+        # 修复观察
+        self._fix_action_mask(obs)
         return obs, reward, terminated, truncated, info
