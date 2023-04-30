@@ -51,7 +51,6 @@ def get_piece_png_file(color_id: int, piece_id: int):
 
 def load_image(name):
     dir_path = os.path.dirname(__file__)
-    print(dir_path)
     fullname = os.path.join(dir_path, "resources/{}".format(name))
     # fullname = files("src.resources").joinpath(name)
     # fullname = importlib.resources.path(".", f"src/resources/{name}")
