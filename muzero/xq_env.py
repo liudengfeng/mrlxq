@@ -31,6 +31,11 @@ class XQEnvBase(gym.Env):
                 "observations": self.observation_space,
             }
         )
+        # 初始化参数
+        self.render_mode = config.get("render_mode", None)
+        self._max_episode_steps = config.get("max_episode_steps", MAX_EPISODE_STEPS)
+        self._render_fps = config.get("render_fps", FPS)
+
         # 初始化游戏
         init_fen = config.get("init_fen", "")
         use_rule = config.get("use_rule", False)
@@ -62,7 +67,9 @@ class XQEnvBase(gym.Env):
         # Set the seed. This is only used for the final (reach goal) reward.
         worker_index = config.get("worker_index", 0)
         num_workers = config.get("num_workers", 1)
-        self.reset(seed=worker_index * num_workers)
+
+        # Note：在reset中设置seed
+        # self.reset(seed=worker_index * num_workers)
 
     def _fix_action_mask(self, obs):
         # 游戏有效移动
@@ -207,7 +214,7 @@ class XQEnvBase(gym.Env):
         if not truncated:
             _, tip, reason = self.game.result()
         else:
-            tip, reason = "平局", "步数超限({})判和".format(self.metadata["max_episode_steps"])
+            tip, reason = "平局", "步数超限({})判和".format(self._max_episode_steps)
 
         self.satistics_info["tip"] = tip
         self.satistics_info["reason"] = reason
@@ -382,8 +389,8 @@ class XQEnvBase(gym.Env):
             self._draw_cell(self.cross_image, x0, y0)
 
     def _render_gui(self, mode):
-        # if self.render_mode not in ("human", "rgb_array"):
-        #     return
+        if self.render_mode not in ("human", "rgb_array"):
+            return
         try:
             import pygame
         except ImportError as e:
@@ -437,7 +444,7 @@ class XQEnvBase(gym.Env):
             pygame.display.update()
             # We need to ensure that human-rendering occurs at the predefined framerate.
             # The following line will automatically add a delay to keep the framerate stable.
-            self.clock.tick(self.metadata["render_fps"])
+            self.clock.tick(self._render_fps)
 
     def close(self):
         if self.window_surface is not None:
@@ -453,12 +460,10 @@ class XiangQiV0(XQEnvBase):
         self,
         config: EnvContext,
     ):
-        render_mode = config.get("render_mode", "rgb_array")
-        if render_mode:
-            assert render_mode in [
-                "human",
-                "rgb_array",
-            ], "render mode must in human,rgb_array"
+        render_mode = config.get("render_mode", None)
+        if render_mode is None:
+            # 默认模式
+            config["render_mode"] = "rgb_array"
         super().__init__(config)
 
     def _make_observation_space(self):
@@ -470,8 +475,8 @@ class XiangQiV0(XQEnvBase):
         )
 
     def _get_obs(self):
-        if self.window_surface is None:
-            self._render_gui("rgb_array")
+        # if self.window_surface is None:
+        #     self._render_gui("human")
         return np.transpose(
             np.array(pygame.surfarray.pixels3d(self.window_surface)), axes=(1, 0, 2)
         )
@@ -480,10 +485,7 @@ class XiangQiV0(XQEnvBase):
         truncated = False
         _, reward, terminated = self.game.step(action)
         self.satistics_info["l"] += 1
-        if (
-            not terminated
-            and self.satistics_info["l"] >= self.metadata["max_episode_steps"]
-        ):
+        if not terminated and self.satistics_info["l"] >= self._max_episode_steps:
             # truncated 与 terminated 不得同时为真
             truncated = True
             reward = 0
@@ -556,10 +558,7 @@ class XiangQiV1(XQEnvBase):
         observations, reward, terminated = self.game.step(action)
 
         self.satistics_info["l"] += 1
-        if (
-            not terminated
-            and self.satistics_info["l"] >= self.metadata["max_episode_steps"]
-        ):
+        if not terminated and self.satistics_info["l"] >= self._max_episode_steps:
             truncated = True
             reward = 0
 
