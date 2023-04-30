@@ -143,6 +143,7 @@ class Game:
         if action not in self.legal_actions_history[-1]:
             legal_moves = [cppxq.a2m(a) for a in self.legal_actions_history[-1]]
             to_move = cppxq.a2m(action)
+            self.board.show_board(True, f"非法移动={to_move}")
             raise ValueError("非法走子。合法移动={}，选中={}".format(legal_moves, to_move))
 
         self.board.move(action)

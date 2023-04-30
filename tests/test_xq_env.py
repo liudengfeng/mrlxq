@@ -28,7 +28,7 @@ def test_step_v0():
     # env.render("human")
     move = "1242"
     next_state, reward, terminated, truncated, info = env.step(m2a(move))
-    assert next_state["observations"].shape == (SCREEN_HEIGHT, SCREEN_WIDTH, 3)
+    assert next_state["obs"].shape == (SCREEN_HEIGHT, SCREEN_WIDTH, 3)
     assert next_state["action_mask"].shape == (NUM_ACTIONS,)
     # env.render("human")
     # time.sleep(3)

@@ -1,21 +1,17 @@
-from gymnasium.spaces import Box, Dict, Discrete
-import numpy as np
+from ray.rllib.algorithms.alpha_zero import AlphaZeroConfig
+from muzero.xq_env import XiangQiV0
 
-observation_space = Box(
-    0,
-    255,
-    (10, 9, 3),
-    dtype=np.uint8,
+config = AlphaZeroConfig()
+config = config.training(sgd_minibatch_size=256)
+config = config.resources(num_gpus=0)
+config = config.rollouts(num_rollout_workers=2)
+config = config.environment(
+    XiangQiV0,
+    env_config={
+        "gen_qp": True,
+    },
 )
-
-observation_space = Dict(
-    {
-        "action_mask": Box(0.0, 1.0, shape=(2086,)),
-        "observations": observation_space,
-    }
-)
-obs = observation_space.sample()
-action_mask = obs["action_mask"]
-for i in range(10):
-    action_mask[i] = 1.0
-action_mask
+print(config.to_dict())
+# Build a Algorithm object from the config and run 1 training iteration.
+algo = config.build()
+algo.train()

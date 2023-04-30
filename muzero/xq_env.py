@@ -28,7 +28,7 @@ class XQEnvBase(gym.Env):
         self.observation_space = Dict(
             {
                 "action_mask": Box(0.0, 1.0, shape=(self.action_space.n,)),
-                "observations": self.observation_space,
+                "obs": self.observation_space,
             }
         )
         # 初始化参数
@@ -37,9 +37,10 @@ class XQEnvBase(gym.Env):
         self._render_fps = config.get("render_fps", FPS)
 
         # 初始化游戏
-        init_fen = config.get("init_fen", "")
-        use_rule = config.get("use_rule", False)
-        self.game = Game(init_fen, use_rule)
+        self.init_fen = config.get("init_fen", "")
+        # 暂时没有用到
+        self.use_rule = config.get("use_rule", False)
+        self.game = Game(self.init_fen, self.use_rule)
 
         # surface 对象
         self.window_surface = None
@@ -107,19 +108,6 @@ class XQEnvBase(gym.Env):
     def _get_obs(self):
         raise NotImplementedError()
 
-    # def sample_action(self):
-    #     """输出随机取样有效的action
-
-    #     Returns:
-    #         int: action
-    #     """
-    #     mask = np.zeros(self.action_space.n, dtype=np.int8)
-    #     valids = self.game.legal_actions_history[-1]
-    #     if len(valids):
-    #         mask[valids] = 1.0
-    #         return self.action_space.sample(mask)
-    #     return None
-
     def reset(self, *, seed=None, options=None):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
@@ -151,7 +139,7 @@ class XQEnvBase(gym.Env):
             to_play=self.game.to_play_id_history[-1],
             fen=self.game.board.get_fen(),
         )
-        obs = {"observations": observations, "action_mask": None}
+        obs = {"obs": observations, "action_mask": None}
         # 修复观察
         self._fix_action_mask(obs)
         return obs, info
@@ -446,6 +434,20 @@ class XQEnvBase(gym.Env):
             # The following line will automatically add a delay to keep the framerate stable.
             self.clock.tick(self._render_fps)
 
+    def get_state(self) -> str:
+        return self.game.board.get_fen()
+
+    def set_state(self, state: str):
+        # TODO:观察对其他项目的影响
+        self.game = Game(state, self.use_rule)
+        self.reset()
+        self._render_gui(self.render_mode)
+        observations = self._get_obs()
+        obs = {"obs": observations, "action_mask": None}
+        # 更新有效 actions
+        self._fix_action_mask(obs)
+        return obs
+
     def close(self):
         if self.window_surface is not None:
             pygame.display.quit()
@@ -475,8 +477,6 @@ class XiangQiV0(XQEnvBase):
         )
 
     def _get_obs(self):
-        # if self.window_surface is None:
-        #     self._render_gui("human")
         return np.transpose(
             np.array(pygame.surfarray.pixels3d(self.window_surface)), axes=(1, 0, 2)
         )
@@ -513,8 +513,8 @@ class XiangQiV0(XQEnvBase):
             truncated=truncated,
             fen=self.game.board.get_fen(),
         )
-        obs = {"observations": observations, "action_mask": None}
-        # 修复观察
+        obs = {"obs": observations, "action_mask": None}
+        # 更新有效 actions
         self._fix_action_mask(obs)
         return obs, reward, terminated, truncated, info
 
@@ -583,7 +583,7 @@ class XiangQiV1(XQEnvBase):
             truncated=truncated,
             fen=self.game.board.get_fen(),
         )
-        obs = {"observations": observations, "action_mask": None}
+        obs = {"obs": observations, "action_mask": None}
         # 修复观察
         self._fix_action_mask(obs)
         return obs, reward, terminated, truncated, info
