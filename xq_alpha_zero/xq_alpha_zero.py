@@ -23,7 +23,7 @@ from ray.rllib.utils.metrics import (
 from ray.rllib.utils.replay_buffers.utils import validate_buffer_config
 from ray.rllib.utils.typing import ResultDict
 
-from .alpha_zero_policy import XqAlphaZeroPolicy
+from .xq_alpha_zero_policy import XqAlphaZeroPolicy
 from .mcts import MCTS
 from .ranked_rewards import get_r2_env_wrapper
 
@@ -261,7 +261,7 @@ class XqAlphaZeroConfig(AlgorithmConfig):
         validate_buffer_config(self)
 
 
-def alpha_zero_loss(policy, model, dist_class, train_batch):
+def xq_alpha_zero_loss(policy, model, dist_class, train_batch):
     # get inputs unflattened inputs
     input_dict = restore_original_dimensions(
         train_batch["obs"], policy.observation_space, "torch"
@@ -311,7 +311,7 @@ class AlphaZeroPolicyWrapperClass(XqAlphaZeroPolicy):
             action_space,
             config,
             model,
-            alpha_zero_loss,
+            xq_alpha_zero_loss,
             TorchCategorical,
             mcts_creator,
             _env_creator,
@@ -403,7 +403,7 @@ class _deprecated_default_config(dict):
         super().__init__(XqAlphaZeroConfig().to_dict())
 
     @Deprecated(
-        old="ray.rllib.algorithms.alpha_zero.alpha_zero.DEFAULT_CONFIG",
+        old="ray.rllib.algorithms.alpha_zero.alpha_zero.DEFAULT_XQ_CONFIG",
         new="ray.rllib.algorithms.alpha_zero.alpha_zero.XqAlphaZeroConfig(...)",
         error=True,
     )
@@ -411,4 +411,4 @@ class _deprecated_default_config(dict):
         return super().__getitem__(item)
 
 
-DEFAULT_CONFIG = _deprecated_default_config()
+DEFAULT_XQ_CONFIG = _deprecated_default_config()

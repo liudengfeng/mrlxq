@@ -144,7 +144,9 @@ class Game:
             legal_moves = [cppxq.a2m(a) for a in self.legal_actions_history[-1]]
             to_move = cppxq.a2m(action)
             self.board.show_board(True, f"非法移动={to_move}")
-            raise ValueError("非法走子。合法移动={}，选中={}".format(legal_moves, to_move))
+            raise ValueError(
+                "\n所有合法移动列表为\n{}\n要执行的非法移动='{}'".format(legal_moves, to_move)
+            )
 
         self.board.move(action)
         self.steps += 1

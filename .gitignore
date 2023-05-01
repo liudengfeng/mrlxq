@@ -161,3 +161,4 @@ cython_debug/
 report.html
 assets/
 .vscode/
+temp_*.py

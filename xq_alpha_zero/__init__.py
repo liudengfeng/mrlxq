@@ -1,13 +1,13 @@
-from xq_alpha_zero.alpha_zero import (
+from xq_alpha_zero.xq_alpha_zero import (
     XqAlphaZero,
     XqAlphaZeroConfig,
-    DEFAULT_CONFIG,
+    DEFAULT_XQ_CONFIG,
 )
-from xq_alpha_zero.alpha_zero_policy import XqAlphaZeroPolicy
+from xq_alpha_zero.xq_alpha_zero_policy import XqAlphaZeroPolicy
 
 __all__ = [
     "XqAlphaZero",
     "XqAlphaZeroConfig",
     "XqAlphaZeroPolicy",
-    "DEFAULT_CONFIG",
+    "DEFAULT_XQ_CONFIG",
 ]

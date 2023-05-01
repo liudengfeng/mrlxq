@@ -28,7 +28,7 @@ class XQEnvBase(gym.Env):
         self.observation_space = Dict(
             {
                 "action_mask": Box(0.0, 1.0, shape=(self.action_space.n,)),
-                "obs": self.observation_space,
+                "observations": self.observation_space,
             }
         )
         # 初始化参数
